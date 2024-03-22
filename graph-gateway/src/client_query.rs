@@ -54,12 +54,23 @@ use self::{
     attestation_header::GraphAttestation, context::Context, l2_forwarding::forward_request_to_l2,
     query_selector::QuerySelector, query_settings::QuerySettings,
 };
-use crate::{
-    block_constraints::{resolve_block_requirements, rewrite_query, BlockRequirements},
-    indexer_client::{check_block_error, IndexerClient, ResponsePayload},
-    reports::{self, serialize_attestation},
-    unattestable_errors::{miscategorized_attestable, miscategorized_unattestable},
-};
+
+use crate::block_constraints::{resolve_block_requirements, rewrite_query, BlockRequirements};
+use crate::chains::ChainReader;
+use crate::indexer_client::{check_block_error, IndexerClient, ResponsePayload};
+use crate::indexers::indexing;
+use crate::indexing_performance::{self, IndexingPerformance};
+use crate::reports::{self, serialize_attestation, KafkaClient};
+use crate::sql_constraints::validate_sql_query;
+use crate::topology::{Deployment, GraphNetwork, Subgraph};
+use crate::unattestable_errors::{miscategorized_attestable, miscategorized_unattestable};
+
+use self::attestation_header::GraphAttestation;
+use self::auth::AuthToken;
+use self::context::Context;
+use self::l2_forwarding::forward_request_to_l2;
+use self::query_selector::QuerySelector;
+use self::query_settings::QuerySettings;
 
 mod attestation_header;
 pub mod context;
@@ -283,6 +294,9 @@ async fn handle_client_query_inner(
         .unwrap_or_default();
     let mut context = AgoraContext::new(&payload.query, &variables)
         .map_err(|err| Error::BadQuery(anyhow!("{err}")))?;
+
+    validate_sql_query(&context)?;
+
     tracing::info!(
         target: CLIENT_REQUEST_TARGET,
         query = %payload.query,
