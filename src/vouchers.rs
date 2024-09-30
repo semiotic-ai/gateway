@@ -125,9 +125,16 @@ pub async fn handle_voucher(
     }
 }
 
+impl TryFrom<&Bytes> for VoucherRequest {
+    type Error = serde_json::Error;
+
+    fn try_from(payload: &Bytes) -> Result<Self, Self::Error> {
+        serde_json::from_slice::<VoucherRequest>(payload)
+    }
+}
+
 fn process_voucher(signer: &SecretKey, payload: &Bytes) -> Result<JsonResponse, String> {
-    let request =
-        serde_json::from_slice::<VoucherRequest>(payload).map_err(|err| err.to_string())?;
+    let request = VoucherRequest::try_from(payload).map_err(|e| e.to_string())?;
     let allocation_id = request.allocation;
     let partial_vouchers = request.partial_vouchers(allocation_id);
     let voucher = combine_partial_vouchers(&allocation_id.0, signer, &partial_vouchers)
