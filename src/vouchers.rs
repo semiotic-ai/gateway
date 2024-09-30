@@ -1,7 +1,9 @@
 use alloy_primitives::{FixedBytes, U256};
 use axum::{body::Bytes, extract::State, http::StatusCode};
 use lazy_static::lazy_static;
-use receipts::{self, combine_partial_vouchers, receipts_to_partial_voucher, receipts_to_voucher};
+use receipts::{
+    self, combine_partial_vouchers, receipts_to_partial_voucher, receipts_to_voucher, VoucherError,
+};
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
 use serde::Deserialize;
 use serde_json::json;
@@ -120,7 +122,7 @@ pub async fn handle_voucher(
         Err(voucher_err) => {
             METRICS.voucher.err.inc();
             tracing::info!(%voucher_err);
-            Err((StatusCode::BAD_REQUEST, voucher_err))
+            Err((StatusCode::BAD_REQUEST, voucher_err.to_string()))
         }
     }
 }
@@ -133,12 +135,12 @@ impl TryFrom<&Bytes> for VoucherRequest {
     }
 }
 
-fn process_voucher(signer: &SecretKey, payload: &Bytes) -> Result<JsonResponse, String> {
-    let request = VoucherRequest::try_from(payload).map_err(|e| e.to_string())?;
+fn process_voucher(signer: &SecretKey, payload: &Bytes) -> Result<JsonResponse, VoucherError> {
+    let request = VoucherRequest::try_from(payload)
+        .map_err(|e| VoucherError::JsonDeserialization(e.to_string()))?;
     let allocation_id = request.allocation;
     let partial_vouchers = request.partial_vouchers(allocation_id);
-    let voucher = combine_partial_vouchers(&allocation_id.0, signer, &partial_vouchers)
-        .map_err(|err| err.to_string())?;
+    let voucher = combine_partial_vouchers(&allocation_id.0, signer, &partial_vouchers)?;
     tracing::info!(
         allocation = %allocation_id,
         partial_vouchers = partial_vouchers.len(),
@@ -148,7 +150,7 @@ fn process_voucher(signer: &SecretKey, payload: &Bytes) -> Result<JsonResponse, 
     // 10M GRT
     if voucher.fees > primitive_types::U256::from(10000000000000000000000000u128) {
         tracing::error!(excessive_voucher_fees = %voucher.fees);
-        return Err("Voucher value too large".into());
+        return Err(VoucherError::VoucherValueTooLarge);
     }
     Ok(json_response(
         [],

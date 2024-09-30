@@ -3649,9 +3649,9 @@ dependencies = [
 [[package]]
 name = "receipts"
 version = "0.1.0"
-source = "git+https://github.com/edgeandnode/receipts?rev=e94e0f1#e94e0f11c41632328b349394b15c3d93fbda1d4b"
+source = "git+https://github.com/suchapalaver/receipts?branch=main#688144c451be9e390f2961452d966d2d45f90b53"
 dependencies = [
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "lazy_static",
  "primitive-types",
  "rand",
