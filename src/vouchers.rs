@@ -129,19 +129,7 @@ fn process_voucher(signer: &SecretKey, payload: &Bytes) -> Result<JsonResponse, 
     let request =
         serde_json::from_slice::<VoucherRequest>(payload).map_err(|err| err.to_string())?;
     let allocation_id = request.allocation;
-    let partial_vouchers = request
-        .partial_vouchers
-        .into_iter()
-        .map(|pv| receipts::PartialVoucher {
-            voucher: receipts::Voucher {
-                allocation_id: allocation_id.into(),
-                fees: primitive_types::U256::from_little_endian(&pv.fees.as_le_bytes()),
-                signature: pv.signature.into(),
-            },
-            receipt_id_min: *pv.receipt_id_min,
-            receipt_id_max: *pv.receipt_id_max,
-        })
-        .collect::<Vec<receipts::PartialVoucher>>();
+    let partial_vouchers = request.partial_vouchers(allocation_id);
     let voucher = combine_partial_vouchers(&allocation_id.0, signer, &partial_vouchers)
         .map_err(|err| err.to_string())?;
     tracing::info!(
@@ -179,6 +167,23 @@ fn parse_receipts(payload: &[u8]) -> Result<([u8; 20], &[u8]), String> {
 struct VoucherRequest {
     allocation: Address,
     partial_vouchers: Vec<PartialVoucher>,
+}
+
+impl VoucherRequest {
+    fn partial_vouchers(self, allocation_id: Address) -> Vec<receipts::PartialVoucher> {
+        self.partial_vouchers
+            .into_iter()
+            .map(|pv| receipts::PartialVoucher {
+                voucher: receipts::Voucher {
+                    allocation_id: allocation_id.into(),
+                    fees: primitive_types::U256::from_little_endian(&pv.fees.as_le_bytes()),
+                    signature: pv.signature.into(),
+                },
+                receipt_id_min: *pv.receipt_id_min,
+                receipt_id_max: *pv.receipt_id_max,
+            })
+            .collect::<Vec<receipts::PartialVoucher>>()
+    }
 }
 
 #[derive(Deserialize)]
