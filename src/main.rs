@@ -361,7 +361,7 @@ pub fn init_logging(executable_name: &str, json: bool) {
 
 /// Creates a new [`AuthContext`] from the given configuration.
 ///
-/// This functions awaits the completion of the initial API keys fetch.
+/// This function awaits the completion of the initial API keys fetch.
 async fn init_auth_service(
     http: reqwest::Client,
     config: Option<ApiKeys>,
