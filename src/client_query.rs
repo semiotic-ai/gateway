@@ -71,7 +71,7 @@ pub async fn handle_query(
 
     // Check if the query selector is authorized by the auth token and
     // resolve the subgraph deployments for the query.
-    let subgraph = resolve_subgraph_info(&ctx, &auth, selector).await?;
+    let subgraph = resolve_subgraph_info(&ctx, &auth, selector)?;
 
     let client_request: QueryBody =
         serde_json::from_reader(payload.reader()).map_err(|err| Error::BadQuery(err.into()))?;
@@ -142,7 +142,7 @@ pub async fn handle_query(
 ///
 /// This function checks if the subgraph (or deployment) is authorized by the auth settings and
 /// resolves the subgraph deployments associated with the query selector.
-async fn resolve_subgraph_info(
+fn resolve_subgraph_info(
     ctx: &Context,
     auth: &AuthSettings,
     selector: QuerySelector,
@@ -749,8 +749,7 @@ pub async fn handle_indexer_query(
         deployment,
         indexer,
     };
-    let subgraph =
-        resolve_subgraph_info(&ctx, &auth, QuerySelector::Deployment(deployment)).await?;
+    let subgraph = resolve_subgraph_info(&ctx, &auth, QuerySelector::Deployment(deployment))?;
     let indexing = subgraph
         .indexings
         .get(&indexing_id)
