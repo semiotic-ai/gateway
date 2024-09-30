@@ -162,13 +162,15 @@ fn process_voucher(signer: &SecretKey, payload: &Bytes) -> Result<JsonResponse, 
     ))
 }
 
-fn parse_receipts(payload: &[u8]) -> Result<([u8; 20], &[u8]), String> {
-    if payload.len() < 20 {
-        return Err("Invalid request data".into());
-    }
-    let mut allocation_id = [0u8; 20];
-    allocation_id.copy_from_slice(&payload[..20]);
-    Ok((allocation_id, &payload[20..]))
+fn parse_receipts(payload: &Bytes) -> Result<([u8; 20], &[u8]), String> {
+    payload
+        .get(..20)
+        .map(|prefix| {
+            let mut allocation_id = [0u8; 20];
+            allocation_id.copy_from_slice(prefix);
+            (allocation_id, &payload[20..])
+        })
+        .ok_or_else(|| "Invalid request data".into())
 }
 
 #[derive(Deserialize)]
