@@ -85,6 +85,14 @@ impl ReceiptSigner {
             salt: None,
         };
 
+        tracing::debug!(
+            domain_name = ?v2_domain.name,
+            domain_version = ?v2_domain.version,
+            domain_chain_id = ?v2_domain.chain_id,
+            domain_verifying_contract = ?v2_domain.verifying_contract,
+            "ReceiptSigner EIP-712 domain configuration"
+        );
+
         Self {
             signer,
             v2_config: ReceiptConfig { domain: v2_domain },
