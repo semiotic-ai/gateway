@@ -151,6 +151,13 @@ impl ReceiptSigner {
             expected_signer = ?self.signer.address(),
             "TAP receipt signature generated"
         );
+        // DEBUG: Log what we expect vs what we create
+        tracing::warn!(
+            gateway_signer_address = ?self.signer.address(),
+            receipt_payer_field = ?signed.message.payer,
+            signature_preview = ?format!("{:?}", &signed.signature.as_bytes()[..8]),
+            "GATEWAY RECEIPT CREATION DEBUG"
+        );
 
         Ok(Receipt(signed))
     }

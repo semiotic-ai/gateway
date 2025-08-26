@@ -56,6 +56,15 @@ where
             format!("{}-{:x}", self.gateway_id, request_count)
         });
 
+        // Add explicit request entry logging to help debug TAP receipt issue
+        tracing::warn!(
+            method = %req.method(),
+            uri = %req.uri(),
+            request_id = %request_id,
+            has_auth_header = req.headers().contains_key(axum::http::header::AUTHORIZATION),
+            "REQUEST ENTRY - incoming request to gateway"
+        );
+
         req.extensions_mut().insert(RequestId(request_id.clone()));
         self.inner.call(req).instrument(tracing::info_span!(
             "client_request",
