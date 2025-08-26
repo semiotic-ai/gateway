@@ -117,6 +117,10 @@ impl ReceiptSigner {
             nonce,
             value: fee,
         };
+        tracing::error!(
+            "\n\n\n\n******Creating TAP v2 receipt: {:?}\n\n\n\n",
+            receipt
+        );
 
         // DEBUG: Log all receipt fields before signing
         tracing::debug!(
