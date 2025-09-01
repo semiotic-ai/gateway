@@ -62,6 +62,7 @@ pub async fn handle_query(
     let start_time = Instant::now();
 
     // CRITICAL DEBUG: Log query entry point
+    // FIXME: Remove log later after full debugging
     tracing::warn!(
         ?selector,
         payload_length = payload.len(),
@@ -309,6 +310,14 @@ async fn run_indexer_queries(
 
     let mut indexer_errors = IndexerErrors::default();
 
+    // CRITICAL DEBUG: Log subgraph resolution and allocation data freshness
+    tracing::warn!(
+        subgraph_chain = %subgraph.chain,
+        subgraph_versions = ?subgraph.versions,
+        indexings_count = subgraph.indexings.len(),
+        "SUBGRAPH RESOLVED - CHECKING ALLOCATION DATA FRESHNESS"
+    );
+
     // Candidate selection preparation
     let (mut candidates, errors) = build_candidates_list(
         &ctx,
@@ -386,11 +395,13 @@ async fn run_indexer_queries(
                 indexer.into_inner(),               // service_provider: indexer address
             ) {
                 Ok(receipt) => {
-                    tracing::debug!(
+                    tracing::warn!(
                         ?indexer,
+                        ?deployment,
                         fee,
                         receipt_value = receipt.value(),
-                        "successfully created TAP receipt"
+                        allocation_id = ?receipt.allocation(),
+                        "TAP RECEIPT CREATED SUCCESSFULLY - CHECK ALLOCATION ID CONSISTENCY"
                     );
                     receipt
                 }
@@ -677,6 +688,15 @@ fn build_candidates_list(
                 continue;
             }
         }
+
+        // CRITICAL DEBUG: Log allocation ID source for each candidate
+        tracing::warn!(
+            ?indexing_id.indexer,
+            ?deployment,
+            largest_collection = ?indexing.largest_allocation,
+            indexer_url = %indexing.indexer.url,
+            "CANDIDATE ADDED - ALLOCATION SOURCE FROM SUBGRAPH QUERY"
+        );
 
         candidates_list.push(Candidate {
             id: indexing_id.indexer,
